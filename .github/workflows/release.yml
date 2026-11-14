@@ -8,6 +8,9 @@ name: Release
 #   Web zip (all apps + launcher page)
 # Run it from the Actions tab (any branch: published as a prerelease v<version>-build.<run>),
 # push a tag v<version>, or push a commit whose message contains [release] (prerelease).
+# The bundle takes each app's newest stable release. Only a manual run with "stable only" unticked takes the
+# apps' prereleases, and then the suite release is always a prerelease too.
+# Before publishing, the bundles are installed on clean Windows, macOS and Linux runners (the install-test jobs).
 
 on:
   workflow_dispatch:
@@ -21,9 +24,9 @@ on:
         type: boolean
         default: true
       stable_only:
-        description: 'Bundle only the apps'' non-prerelease releases'
+        description: 'Bundle only the apps'' non-prerelease releases (untick to try the apps'' newest -build.N prereleases)'
         type: boolean
-        default: false
+        default: true
   push:
     tags: ['v*']
     branches: ['**']
@@ -52,7 +55,8 @@ jobs:
       - name: Find the newest release of each app
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node scripts/resolve.mjs manifest ${{ inputs.stable_only && '--stable' || '' }} --out manifest.json
+        # Tag pushes and [release] commits have no inputs: they always take stable releases.
+        run: node scripts/resolve.mjs manifest ${{ (github.event_name != 'workflow_dispatch' || inputs.stable_only) && '--stable' || '' }} --out manifest.json
       - uses: actions/upload-artifact@v4
         with:
           name: manifest
@@ -83,7 +87,7 @@ jobs:
         run: installers/windows/build.sh ${{ matrix.arch }} payload out
       - uses: actions/upload-artifact@v4
         with:
-          name: QuillOffice-windows-${{ matrix.arch }}
+          name: AnnesOffice-windows-${{ matrix.arch }}
           path: out/*
 
   macos:
@@ -105,7 +109,7 @@ jobs:
         run: installers/macos/build-pkg.sh payload out
       - uses: actions/upload-artifact@v4
         with:
-          name: QuillOffice-macos
+          name: AnnesOffice-macos
           path: out/*
 
   linux:
@@ -133,7 +137,7 @@ jobs:
         run: f=$(ls out/*.sh | head -n1); [ -z "$f" ] || sh "$f" --list
       - uses: actions/upload-artifact@v4
         with:
-          name: QuillOffice-linux-${{ matrix.arch }}
+          name: AnnesOffice-linux-${{ matrix.arch }}
           path: out/*
 
   portable:
@@ -156,14 +160,115 @@ jobs:
           node scripts/bundle-portable.mjs web payload out
           node scripts/bundle-portable.mjs android payload out
           node scripts/bundle-portable.mjs ios payload out
+      - name: Check the archives
+        run: |
+          # Every app with a web build has its own folder with an index.html; the launcher page links to it.
+          unzip -l out/*-web.zip > web.txt
+          grep -qE ' index\.html$' web.txt || { echo "::error::web zip has no launcher page"; exit 1; }
+          node -e "
+            const lines = require('fs').readFileSync('web.txt', 'utf8').split('\n').map((l) => l.trim());
+            const apps = Object.values(require('./manifest.json').apps).filter((a) => a.found && a.assets.web && !a.assets.web.name.includes('jvm'));
+            const bad = apps.filter((a) => !lines.some((l) => l.includes(' ' + a.repo + '/') && l.endsWith('/index.html'))).map((a) => a.label);
+            if (bad.length) { console.error('::error::web zip has no index.html for ' + bad.join(', ')); process.exit(1); }
+            console.log('web folders OK: ' + apps.map((a) => a.repo).join(', '));
+          "
+          unzip -l out/*-android.zip | grep -E '\.apk$'
+          unzip -l out/*-ios-unsigned.zip | grep -E '\.ipa$'
       - uses: actions/upload-artifact@v4
         with:
-          name: QuillOffice-portable
+          name: AnnesOffice-portable
           path: out/*
+
+  # Install tests: the real bundles on clean runners. Publishing waits for all three.
+  install-windows:
+    name: Install test (Windows x64)
+    needs: [resolve, windows]
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: AnnesOffice-windows-x64, path: out }
+      - uses: actions/download-artifact@v4
+        with: { name: manifest }
+      - name: Run the setup silently; every app must appear in Apps & features
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem out -Filter '*-windows-x64-setup.exe' | Select-Object -First 1
+          if (-not $setup) { throw 'No x64 setup in the artifact' }
+          $p = Start-Process -FilePath $setup.FullName -ArgumentList '/S' -Wait -PassThru
+          "Setup exit code: $($p.ExitCode) (0 = every app installed, 2 = one or more did not)"
+          $m = Get-Content manifest.json -Raw | ConvertFrom-Json
+          $want = @($m.apps.PSObject.Properties | Where-Object { $_.Value.found -and $_.Value.assets.'win-x64' })
+          $roots = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*', 'HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
+          # An app's own installer can finish registering a moment after it exits.
+          for ($i = 0; $i -lt 12; $i++) {
+            $names = @(Get-ItemProperty $roots -ErrorAction SilentlyContinue | Where-Object DisplayName | ForEach-Object DisplayName)
+            $bad = @(); $report = @()
+            foreach ($app in $want) {
+              $short = $app.Name -replace '^Quill', ''
+              $hit = @($names | Where-Object { $_ -match "(Anne.?s ?|Quill)$short\b" })
+              if ($hit) { $report += "OK    $($app.Value.label) $($app.Value.version): $($hit -join '; ')" } else { $report += "MISSING $($app.Value.label)"; $bad += $app.Value.label }
+            }
+            if (-not $bad) { break }
+            Start-Sleep -Seconds 5
+          }
+          $report
+          if ($p.ExitCode -ne 0) { $bad += "setup exit code $($p.ExitCode)" }
+          if ($bad) { 'Installed programs:'; $names | Sort-Object; throw "Install test failed: $($bad -join ', ')" }
+
+  install-macos:
+    name: Install test (macOS)
+    needs: [resolve, macos]
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: AnnesOffice-macos, path: out }
+      - uses: actions/download-artifact@v4
+        with: { name: manifest }
+      - name: Install the package; every app must be in /Applications
+        run: |
+          pkg="$(ls out/*-mac.pkg | head -n 1)"
+          sudo installer -pkg "$pkg" -target /
+          bad=""
+          while IFS=$'\t' read -r label id; do
+            app="$(pkgutil --files "$id" 2>/dev/null | grep -m 1 -E '^[^/]+\.app$' || true)"
+            if [ -n "$app" ] && [ -d "/Applications/$app" ]; then echo "OK      $label: /Applications/$app"; else echo "MISSING $label ($id)"; bad="$bad $label;"; fi
+          done < <(node -e "for (const a of Object.values(require('./manifest.json').apps)) if (a.found && a.assets.mac) console.log(a.label + '\t' + a.id)")
+          [ -z "$bad" ] || { echo "::error::Not installed:$bad"; exit 1; }
+
+  install-linux:
+    name: Install test (Linux x64)
+    needs: [resolve, linux]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: AnnesOffice-linux-x64, path: out }
+      - name: Install with the .sh; every package must be installed
+        run: |
+          sh_file="$(ls out/*-linux-x64.sh | head -n 1)"
+          sh "$sh_file" --list
+          # An unknown app name selects nothing and must fail rather than install everything.
+          if sh "$sh_file" --apps nosuchapp >/dev/null 2>&1; then echo "::error::--apps with no match did not fail"; exit 1; fi
+          sh "$sh_file" --extract debs
+          sudo apt-get update -q
+          sudo sh "$sh_file"
+          bad=""
+          for d in debs/*.deb; do
+            p="$(dpkg-deb -f "$d" Package)"
+            if dpkg -s "$p" >/dev/null 2>&1; then echo "OK      $p $(dpkg-query -W -f '${Version}' "$p")"; else echo "MISSING $p"; bad="$bad $p"; fi
+          done
+          [ -z "$bad" ] || { echo "::error::Not installed:$bad"; exit 1; }
+      - name: The AppImages archive holds one executable AppImage per app
+        run: |
+          tar -tzvf out/*-linux-x64-AppImages.tar.gz
+          n="$(tar -tzf out/*-linux-x64-AppImages.tar.gz | grep -c '\.AppImage$')"
+          [ "$n" -ge 1 ] || { echo "::error::No AppImages in the archive"; exit 1; }
 
   publish:
     name: Publish release
-    needs: [resolve, windows, macos, linux, portable]
+    needs: [resolve, windows, macos, linux, portable, install-windows, install-macos, install-linux]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -174,7 +279,7 @@ jobs:
         with: { node-version: 22 }
       - uses: actions/download-artifact@v4
         with:
-          pattern: QuillOffice-*
+          pattern: AnnesOffice-*
           path: out
           merge-multiple: true
       - uses: actions/download-artifact@v4
@@ -186,10 +291,16 @@ jobs:
           if [[ -n "${{ inputs.tag }}" ]]; then TAG="${{ inputs.tag }}"; PRE=false
           elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then TAG="${{ github.ref_name }}"; PRE=false; else TAG="v$V-build.${{ github.run_number }}"; PRE=true; fi
           [ "${{ github.event_name }}" = workflow_dispatch ] && PRE="${{ inputs.prerelease }}"
+          # A suite release that is not a prerelease never carries an app prerelease.
+          APP_PRE="$(node -e "const m=require('./manifest.json');console.log(Object.values(m.apps).filter(a=>a.found&&a.prerelease).map(a=>a.label+' '+a.tag).join(', '))")"
+          if [ -n "$APP_PRE" ] && [ "$PRE" != true ]; then
+            echo "::warning::App prereleases in this bundle ($APP_PRE): publishing as a prerelease."
+            PRE=true
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"; echo "prerelease=$PRE" >> "$GITHUB_OUTPUT"
-          (cd out && sha256sum QuillOffice-* > SHA256SUMS.txt)
+          (cd out && sha256sum AnnesOffice-* > SHA256SUMS.txt)
           node scripts/release-notes.mjs manifest.json out > notes.md
-          cp manifest.json out/QuillOffice-$V-manifest.json
+          cp manifest.json out/AnnesOffice-$V-manifest.json
           ls -la out
       - uses: softprops/action-gh-release@v2
         with:
@@ -199,5 +310,5 @@ jobs:
           prerelease: ${{ steps.meta.outputs.prerelease }}
           body_path: notes.md
           files: |
-            out/QuillOffice-*
+            out/AnnesOffice-*
             out/SHA256SUMS.txt

@@ -11,7 +11,7 @@ defs=()
 # Maps each app to its NSIS define prefix.
 while IFS=$'\t' read -r app file ver; do
   case "$app" in
-    QuillPen) p=PEN;; QuillGrid) p=GRID;; QuillPost) p=POST;; QuillStage) p=STAGE;; *) continue;;
+    QuillPen) p=PEN;; QuillGrid) p=GRID;; QuillPost) p=POST;; QuillStage) p=STAGE;; QuillLoom) p=LOOM;; *) continue;;
   esac
   defs+=("-D${p}_FILE=$file" "-D${p}_VERSION=$ver")
 done < <(node -e "
@@ -19,6 +19,6 @@ done < <(node -e "
   for (const x of p) if (x.key === '$KEY') console.log([x.app, x.file, x.version].join('\t'));
 ")
 if [ ${#defs[@]} -eq 0 ]; then echo "No Windows $ARCH installers in $PAYLOAD"; exit 1; fi
-OUTFILE="$OUT/QuillOffice-$VERSION-windows-$ARCH-setup.exe"
-makensis -V2 -DVERSION="$VERSION" -DARCH="$ARCH" -DPAYLOAD="$PAYLOAD" -DOUTFILE="$OUTFILE" "${defs[@]}" "$HERE/QuillOffice.nsi"
+OUTFILE="$OUT/AnnesOffice-$VERSION-windows-$ARCH-setup.exe"
+makensis -V2 -DVERSION="$VERSION" -DARCH="$ARCH" -DPAYLOAD="$PAYLOAD" -DOUTFILE="$OUTFILE" "${defs[@]}" "$HERE/AnnesOffice.nsi"
 ls -la "$OUTFILE"

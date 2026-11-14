@@ -22,7 +22,7 @@ const cmd = args.shift();
 const opt = (name, def) => { const i = args.indexOf(name); if (i < 0) return def; const v = args[i + 1]; args.splice(i, 2); return v; };
 const flag = (name) => { const i = args.indexOf(name); if (i < 0) return false; args.splice(i, 1); return true; };
 
-const headers = { 'User-Agent': 'QuillOffice-release-bundler', Accept: 'application/vnd.github+json' };
+const headers = { 'User-Agent': 'AnnesOffice-release-bundler', Accept: 'application/vnd.github+json' };
 if (process.env.GITHUB_TOKEN) headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
 
 async function api(path) {

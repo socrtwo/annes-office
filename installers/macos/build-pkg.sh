@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds QuillOffice-<version>-mac.pkg: a macOS installer package with one selectable choice per app.
+# Builds AnnesOffice-<version>-mac.pkg: a macOS installer package with one selectable choice per app.
 # Each app's .app bundle is taken from its release (.zip or .dmg) and installed into /Applications.
 #   installers/macos/build-pkg.sh <payload dir> <out dir>      (runs on macOS: pkgbuild, productbuild, hdiutil)
 set -euo pipefail
@@ -11,7 +11,7 @@ trap 'rm -rf "$WORK"' EXIT
 mkdir -p "$WORK/pkgs" "$WORK/apps"
 
 choices=""; outline=""; refs=""
-while IFS=$'\t' read -r app file ver id summary; do
+while IFS=$'\t' read -r app file ver id summary label; do
   src="$PAYLOAD/$file"
   dest="$WORK/apps/$app"; mkdir -p "$dest"
   case "$file" in
@@ -25,13 +25,13 @@ while IFS=$'\t' read -r app file ver id summary; do
   appdir="$(find "$dest" -maxdepth 1 -name '*.app' | head -n 1)"
   [ -d "$appdir" ] || { echo "No .app found in $file"; exit 1; }
   pkgbuild --component "$appdir" --install-location /Applications --identifier "$id" --version "$ver" "$WORK/pkgs/$app.pkg"
-  choices+="<choice id=\"$app\" title=\"$app $ver\" description=\"$summary\" visible=\"true\" start_selected=\"true\"><pkg-ref id=\"$id\"/></choice>"
+  choices+="<choice id=\"$app\" title=\"$label $ver\" description=\"$summary\" visible=\"true\" start_selected=\"true\"><pkg-ref id=\"$id\"/></choice>"
   outline+="<line choice=\"$app\"/>"
   refs+="<pkg-ref id=\"$id\" version=\"$ver\" onConclusion=\"none\">$app.pkg</pkg-ref>"
 done < <(node -e "
   const p = require('$PAYLOAD/payload.json');
   const m = require('$PAYLOAD/../manifest.json').apps;
-  for (const x of p) if (x.key === 'mac') console.log([x.app, x.file, x.version, m[x.app].id, m[x.app].summary].join('\t'));
+  for (const x of p) if (x.key === 'mac') console.log([x.app, x.file, x.version, m[x.app].id, m[x.app].summary, m[x.app].label || x.app].join('\t'));
 ")
 [ -n "$outline" ] || { echo "No macOS apps in $PAYLOAD"; exit 1; }
 
@@ -50,10 +50,10 @@ EOF
 mkdir -p "$WORK/res"
 cat > "$WORK/res/welcome.html" <<'EOF'
 <html><body style="font-family:-apple-system,sans-serif;font-size:13px">
-<p>Anne's Office installs the Anne's Office suite into Applications: Anne's Pen (documents), Anne's Grid (spreadsheets), Anne's Post (email) and Anne's Stage (presentations). Untick any app you do not want on the next screen.</p>
+<p>Anne's Office installs the Anne's Office suite into Applications: Anne's Pen (documents), Anne's Grid (spreadsheets), Anne's Post (email), Anne's Stage (presentations) and Anne's Loom (web sites). Untick any app you do not want on the next screen.</p>
 <p>The apps are open source (MIT License). They are not notarized, so the first time you open each one, right-click it and choose Open, or allow it in System Settings &gt; Privacy &amp; Security.</p>
 <p>Anne's Post's macOS build is for Apple silicon only; on an Intel Mac it is left out automatically by the installer, and its portable (Java) edition is available from its releases page.</p>
 </body></html>
 EOF
-productbuild --distribution "$WORK/distribution.xml" --resources "$WORK/res" --package-path "$WORK/pkgs" --version "$VERSION" "$OUT/QuillOffice-$VERSION-mac.pkg"
+productbuild --distribution "$WORK/distribution.xml" --resources "$WORK/res" --package-path "$WORK/pkgs" --version "$VERSION" "$OUT/AnnesOffice-$VERSION-mac.pkg"
 ls -la "$OUT"

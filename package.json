@@ -1,8 +1,8 @@
 {
-  "name": "quilloffice",
-  "version": "0.1.0",
+  "name": "annes-office",
+  "version": "0.3.0",
   "private": true,
-  "description": "Anne's Office: the Anne's Office suite (Anne's Pen, Anne's Grid, Anne's Post, Anne's Stage) in one download per platform.",
+  "description": "Anne's Office: the Anne's Office suite (Anne's Pen, Anne's Grid, Anne's Post, Anne's Stage, Anne's Loom) in one download per platform.",
   "keywords": [
     "annes-office",
     "annes-office-suite",
@@ -10,6 +10,7 @@
     "annes-grid",
     "annes-post",
     "annes-stage",
+    "annes-loom",
     "office-suite",
     "installer",
     "bundle",
@@ -27,18 +28,20 @@
     "android",
     "ios"
   ],
-  "homepage": "https://github.com/socrtwo/QuillOffice/releases/latest",
+  "homepage": "https://github.com/socrtwo/annes-office/releases/latest",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/socrtwo/QuillOffice.git"
+    "url": "git+https://github.com/socrtwo/annes-office.git"
   },
   "bugs": {
-    "url": "https://github.com/socrtwo/QuillOffice/issues"
+    "url": "https://github.com/socrtwo/annes-office/issues"
   },
   "author": "Paul D Pruitt",
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "manifest": "node scripts/resolve.mjs manifest --out manifest.json",
     "test": "node --test tests/*.test.mjs",
