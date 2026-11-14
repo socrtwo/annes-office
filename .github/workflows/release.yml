@@ -253,6 +253,9 @@ jobs:
           if sh "$sh_file" --apps nosuchapp >/dev/null 2>&1; then echo "::error::--apps with no match did not fail"; exit 1; fi
           sh "$sh_file" --extract debs
           sudo apt-get update -q
+          # The runner has no desktop. Anne's Post's package (jpackage) runs xdg-desktop-menu in its postinst,
+          # which exits 3 when no system menu directory exists; every desktop system has /etc/xdg/menus.
+          sudo mkdir -p /etc/xdg/menus /usr/share/applications /usr/share/desktop-directories
           sudo sh "$sh_file"
           bad=""
           for d in debs/*.deb; do
