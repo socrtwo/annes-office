@@ -3,10 +3,13 @@
 ; Built with makensis (NSIS 3) on any OS; the payload files come from scripts/resolve.mjs.
 ;
 ; Defines expected on the command line:
-;   /DVERSION=0.1.0 /DARCH=x64|arm64 /DPAYLOAD=path\to\payload /DOUTFILE=QuillOffice-0.1.0-windows-x64-setup.exe
+;   /DVERSION=0.1.0 /DARCH=x64|arm64 /DPAYLOAD=path\to\payload /DOUTFILE=AnnesOffice-0.1.0-windows-x64-setup.exe
 ;   and for each app that has an installer in this payload:
-;   /DPEN_FILE=QuillPen-1.2.0-windows-x64-setup.exe /DPEN_VERSION=1.2.0   (same for GRID_, POST_, STAGE_)
+;   /DPEN_FILE=QuillPen-1.2.0-windows-x64-setup.exe /DPEN_VERSION=1.2.0   (same for GRID_, POST_, STAGE_, LOOM_)
 ;   POST_FILE is an .msi (installed with msiexec); the others are NSIS installers that accept /S.
+;
+; Silent use (/S): every app in the setup is installed, message boxes take their default answer, and the
+; exit code is 0 when every app installed, 2 when one or more did not (the CI install test relies on this).
 
 Unicode true
 !include "MUI2.nsh"
@@ -15,7 +18,7 @@ Unicode true
 Name "Anne's Office ${VERSION}"
 OutFile "${OUTFILE}"
 ; Nothing of Anne's Office's own is installed; only an uninstall-helper note goes here.
-InstallDir "$LOCALAPPDATA\Programs\QuillOffice"
+InstallDir "$LOCALAPPDATA\Programs\AnnesOffice"
 RequestExecutionLevel user
 ; The embedded installers are already compressed.
 SetCompress off
@@ -24,7 +27,7 @@ BrandingText "Anne's Office ${VERSION} (${ARCH}) — MIT License"
 !define MUI_ABORTWARNING
 !define MUI_COMPONENTSPAGE_SMALLDESC
 !define MUI_WELCOMEPAGE_TITLE "Anne's Office ${VERSION}"
-!define MUI_WELCOMEPAGE_TEXT "This installs the Anne's Office suite: Anne's Pen (documents), Anne's Grid (spreadsheets), Anne's Post (email) and Anne's Stage (presentations).$\r$\n$\r$\nEach app is installed by its own installer, for the current user, and appears in the Start menu and in Apps & features on its own. Untick any app you do not want.$\r$\n$\r$\nThe apps are open source (MIT License) and are not signed with a paid certificate, so Windows SmartScreen may ask once per app."
+!define MUI_WELCOMEPAGE_TEXT "This installs the Anne's Office suite: Anne's Pen (documents), Anne's Grid (spreadsheets), Anne's Post (email), Anne's Stage (presentations) and Anne's Loom (web sites).$\r$\n$\r$\nEach app is installed by its own installer, for the current user, and appears in the Start menu and in Apps & features on its own. Untick any app you do not want.$\r$\n$\r$\nThe apps are open source (MIT License) and are not signed with a paid certificate, so Windows SmartScreen may ask once per app."
 !define MUI_FINISHPAGE_TITLE "Anne's Office is installed"
 !define MUI_FINISHPAGE_TEXT "The apps you chose are in the Start menu. Each one can be removed separately from Settings ▸ Apps."
 
@@ -41,16 +44,16 @@ Function .onInit
   StrCpy $Failed ""
 !if "${ARCH}" == "arm64"
   ${IfNot} ${IsNativeARM64}
-    MessageBox MB_ICONSTOP "This Anne's Office setup is for Windows on ARM. Download the x64 setup for this computer."
+    MessageBox MB_ICONSTOP "This Anne's Office setup is for Windows on ARM. Download the x64 setup for this computer." /SD IDOK
     Abort
   ${EndIf}
 !else
   ${IfNot} ${IsNativeAMD64}
     ${If} ${IsNativeARM64}
-      MessageBox MB_ICONQUESTION|MB_YESNO "This setup contains x64 apps. They run on this ARM computer through emulation, but the arm64 setup would be faster. Install the x64 apps anyway?" IDYES +2
+      MessageBox MB_ICONQUESTION|MB_YESNO "This setup contains x64 apps. They run on this ARM computer through emulation, but the arm64 setup would be faster. Install the x64 apps anyway?" /SD IDYES IDYES +2
       Abort
     ${Else}
-      MessageBox MB_ICONSTOP "Anne's Office needs 64-bit Windows."
+      MessageBox MB_ICONSTOP "Anne's Office needs 64-bit Windows." /SD IDOK
       Abort
     ${EndIf}
   ${EndIf}
@@ -110,9 +113,16 @@ Section "Anne's Stage ${STAGE_VERSION} (presentations)" SecStage
 SectionEnd
 !endif
 
+!ifdef LOOM_FILE
+Section "Anne's Loom ${LOOM_VERSION} (web sites)" SecLoom
+  !insertmacro RunNsis "Anne's Loom" "${LOOM_FILE}"
+SectionEnd
+!endif
+
 Section "-finish"
   ${If} $Failed != ""
-    MessageBox MB_ICONEXCLAMATION "These apps did not install:$Failed$\r$\n$\r$\nYou can download them separately from github.com/socrtwo."
+    MessageBox MB_ICONEXCLAMATION "These apps did not install:$Failed$\r$\n$\r$\nYou can download them separately from github.com/socrtwo." /SD IDOK
+    SetErrorLevel 2
   ${EndIf}
 SectionEnd
 
@@ -128,5 +138,8 @@ SectionEnd
 !endif
 !ifdef STAGE_FILE
   !insertmacro MUI_DESCRIPTION_TEXT ${SecStage} "Presentations. Opens and saves .pptx and .odp, with presenter view."
+!endif
+!ifdef LOOM_FILE
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecLoom} "Web site editor. Design, Split and Code views over real HTML files, with site management and publishing."
 !endif
 !insertmacro MUI_FUNCTION_DESCRIPTION_END

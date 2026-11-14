@@ -1,10 +1,10 @@
 #!/bin/sh
 # Anne's Office @VERSION@ (@ARCH@): installs the Anne's Office suite on Debian, Ubuntu, Raspberry Pi OS and other
 # Debian-based systems. A gzip tar archive of the apps' .deb packages follows this script.
-#   sh QuillOffice-@VERSION@-linux-@ARCH@.sh [--apps pen,grid,post,stage] [--list] [--extract DIR]
+#   sh AnnesOffice-@VERSION@-linux-@ARCH@.sh [--apps pen,grid,post,stage,loom] [--list] [--extract DIR]
 # Other distributions: use the AppImages archive from the same release.
 set -eu
-APPS="pen,grid,post,stage"
+APPS="pen,grid,post,stage,loom"
 EXTRACT=""
 LIST=0
 while [ $# -gt 0 ]; do
@@ -29,10 +29,11 @@ PKGS=""
 for f in "$WORK"/*.deb; do
   b="$(basename "$f" | tr '[:upper:]' '[:lower:]')"
   case "$b" in
-    quillpen*) want pen && PKGS="$PKGS $f" ;;
-    quillgrid*) want grid && PKGS="$PKGS $f" ;;
-    quillpost*) want post && PKGS="$PKGS $f" ;;
-    quillstage*) want stage && PKGS="$PKGS $f" ;;
+    quillpen*|annespen*) want pen && PKGS="$PKGS $f" ;;
+    quillgrid*|annesgrid*) want grid && PKGS="$PKGS $f" ;;
+    quillpost*|annespost*) want post && PKGS="$PKGS $f" ;;
+    quillstage*|annesstage*) want stage && PKGS="$PKGS $f" ;;
+    quillloom*|annesloom*) want loom && PKGS="$PKGS $f" ;;
   esac
 done
 if [ -z "$PKGS" ]; then echo "Nothing selected. Apps in this bundle:"; cat "$WORK/APPS.txt"; exit 1; fi

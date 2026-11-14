@@ -1,6 +1,6 @@
 # Contributing to Anne's Office
 
-Anne's Office only packages the Anne's Office apps. A bug in an app belongs in that app's repository ([Anne's Pen](https://github.com/socrtwo/QuillPen/issues), [Anne's Grid](https://github.com/socrtwo/QuillGrid/issues), [Anne's Post](https://github.com/socrtwo/QuillPost/issues), [Anne's Stage](https://github.com/socrtwo/QuillStage/issues)). Issues here are for the installers and bundles: an app missing from a bundle, an installer that fails on a platform, a wrong version in the release notes.
+Anne's Office only packages the Anne's Office apps. A bug in an app belongs in that app's repository ([Anne's Pen](https://github.com/socrtwo/annes-pen/issues), [Anne's Grid](https://github.com/socrtwo/annes-grid/issues), [Anne's Post](https://github.com/socrtwo/annes-post/issues), [Anne's Stage](https://github.com/socrtwo/annes-stage/issues)). Issues here are for the installers and bundles: an app missing from a bundle, an installer that fails on a platform, a wrong version in the release notes.
 
 When you report an installer problem, include the platform and version, the bundle file name, and the installer's output (the Windows setup shows a details log; the Linux `.sh` prints to the terminal; macOS keeps `/var/log/install.log`).
 
@@ -11,6 +11,6 @@ Changes to the installers should keep these rules:
 - An app that fails to install must not stop the others, and the failure must be reported.
 - Interface text and documentation use American English.
 
-The repository description and topics are kept in `QuillOffice.meta.json`; change them there and run `bash scripts/set-repo-metadata.sh` (needs `gh auth login`).
+The repository description and topics are kept in `AnnesOffice.meta.json`; change them there and run `bash scripts/set-repo-metadata.sh` (needs `gh auth login`).
 
 Run `npm test` and `npm run check` before opening a pull request. The CI workflow also compiles the NSIS script and resolves the apps' current releases.

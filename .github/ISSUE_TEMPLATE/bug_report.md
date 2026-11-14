@@ -7,7 +7,7 @@ assignees: ''
 ---
 
 **Bundle**
-File name (for example `QuillOffice-0.1.0-windows-x64-setup.exe`) and the release it came from.
+File name (for example `AnnesOffice-0.3.0-windows-x64-setup.exe`) and the release it came from.
 
 **Platform**
 Operating system and version, architecture (x64, arm64, armv7l).

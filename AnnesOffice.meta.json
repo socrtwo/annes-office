@@ -1,7 +1,7 @@
 {
   "name": "Anne's Office",
-  "description": "The Anne's Office suite in one download: installers that set up Anne's Pen (documents), Anne's Grid (spreadsheets), Anne's Post (email) and Anne's Stage (presentations) together on Windows, macOS, Linux, Android, iOS and the web. Original, open-source, clean-room office apps with no missing commands.",
-  "homepage": "https://github.com/socrtwo/QuillOffice/releases/latest",
+  "description": "The Anne's Office suite in one download: installers that set up Anne's Pen (documents), Anne's Grid (spreadsheets), Anne's Post (email), Anne's Stage (presentations) and Anne's Loom (web sites) together on Windows, macOS, Linux, Android, iOS and the web. Original, open-source, clean-room office apps with no missing commands.",
+  "homepage": "https://github.com/socrtwo/annes-office/releases/latest",
   "topics": [
     "office-suite",
     "annes-office-suite",
@@ -11,6 +11,7 @@
     "spreadsheet",
     "email-client",
     "presentation",
+    "website-editor",
     "windows",
     "macos",
     "linux",
@@ -30,6 +31,7 @@
     "annes-grid",
     "annes-post",
     "annes-stage",
+    "annes-loom",
     "office-suite",
     "installer",
     "bundle",
@@ -47,6 +49,12 @@
     "android",
     "ios"
   ],
-  "apps": ["QuillPen", "QuillGrid", "QuillPost", "QuillStage"],
-  "notYet": ["QuillLoom"]
+  "apps": [
+    "QuillPen",
+    "QuillGrid",
+    "QuillPost",
+    "QuillStage",
+    "QuillLoom"
+  ],
+  "notYet": []
 }

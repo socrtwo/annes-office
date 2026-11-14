@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const read = (f) => JSON.parse(readFileSync(new URL('../' + f, import.meta.url), 'utf8'));
-const meta = read('QuillOffice.meta.json');
+const meta = read('AnnesOffice.meta.json');
 const suite = read('suite.json');
 const pkg = read('package.json');
 

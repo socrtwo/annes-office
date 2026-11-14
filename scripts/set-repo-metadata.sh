@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Set the GitHub repository's description, homepage and topics from QuillOffice.meta.json.
+# Set the GitHub repository's description, homepage and topics from AnnesOffice.meta.json.
 # Needs git, node and the GitHub CLI logged in with "repo" scope:
 #   gh auth login
 #   bash scripts/set-repo-metadata.sh            # apply
@@ -8,10 +8,10 @@
 # Safe to re-run.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-REPO="${REPO:-socrtwo/QuillOffice}"
+REPO="${REPO:-socrtwo/annes-office}"
 DRY=0; [ "${1:-}" = "--dry-run" ] && DRY=1
 
-field() { node -e "const m=JSON.parse(require('fs').readFileSync('QuillOffice.meta.json','utf8'));const v=m[process.argv[1]];process.stdout.write(Array.isArray(v)?v.join(','):String(v??''))" "$1"; }
+field() { node -e "const m=JSON.parse(require('fs').readFileSync('AnnesOffice.meta.json','utf8'));const v=m[process.argv[1]];process.stdout.write(Array.isArray(v)?v.join(','):String(v??''))" "$1"; }
 DESC="$(field description)"
 HOME_URL="$(field homepage)"
 TOPICS="$(field topics)"
