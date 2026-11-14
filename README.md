@@ -38,6 +38,7 @@ The repository's description, homepage and topics live in [AnnesOffice.meta.json
 
 - The desktop apps are not code-signed, so Windows SmartScreen and macOS Gatekeeper ask once per app (the installers say so).
 - Anne's Post's desktop builds exist for Windows x64, macOS on Apple silicon, and Linux x64/arm64 only. The Windows on ARM setup leaves it out (its x64 build runs through emulation when installed separately); the macOS package skips it on Intel Macs; its iOS release is a simulator build and is not bundled. Its web edition is a Java server rather than a static site and is included as its own zip with instructions.
+- On a Linux system without a desktop (a server, Raspberry Pi OS Lite), Anne's Post's `.deb` fails to configure: its install script needs a system menu directory (`/etc/xdg/menus`). `sudo mkdir -p /etc/xdg/menus` before installing works around it, or leave it out with `--apps pen,grid,stage,loom`.
 - Anne's Loom has no Android or iOS package yet; on phones and tablets use its web app from the web bundle.
 - The install tests cover Windows x64, macOS on Apple silicon and Linux x64. The Windows on ARM setup, Intel Macs and the Linux arm64 and armv7l installers are built the same way but not installed in CI.
 - A bundle is only as current as the apps' releases at the moment it was built; it does not update itself. Each app keeps its own update path.
